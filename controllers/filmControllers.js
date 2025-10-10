@@ -54,6 +54,40 @@ const viewTop5AStoreActors = async (req,res)=>{
         }
 }
 
+//Get actor info and their top 5 rented films
+const getActorDetails = async (req, res) => {
+    try {
+        const { actor_id } = req.params;
+        const actor = await query(`SELECT a.actor_id, a.first_name , a.last_name, COUNT(fa.film_id) film_count
+FROM sakila.actor a
+join sakila.film_actor fa on a.actor_id = fa.actor_id
+where a.actor_id = ?
+group by a.actor_id
+            `, [actor_id]);
+        if (actor.length === 0) {
+            return res.status(404).json({ message: 'Actor not found' });
+        }
+        const films = await query(`
+            SELECT f.film_id, f.title, COUNT(r.rental_id) AS rental_count
+            FROM sakila.film f
+            JOIN sakila.film_actor fa ON fa.film_id = f.film_id
+            JOIN sakila.rental r ON r.inventory_id IN (
+                SELECT i.inventory_id
+                FROM sakila.inventory i
+                WHERE i.film_id = f.film_id 
+            )
+            WHERE fa.actor_id = ?
+            GROUP BY f.film_id, f.title
+            ORDER BY rental_count DESC
+            LIMIT 5;
+        `, [actor_id]);
+        res.status(200).json({ actor: actor[0], topFilms: films });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+
 //View top 5 rented films for a specific actor
 const getTop5RentedFilmsByActor = async (req, res) => {
     try {
@@ -258,7 +292,8 @@ module.exports = {
     getFilmDetails,
     viewTop5AStoreActors
     //,getActorDetails
-    ,getTop5RentedFilmsByActor,
+    ,getActorDetails,
+    getTop5RentedFilmsByActor,
     searchFilmByName,
     searchFilmByActorName,
     searchFilmByGenre,

@@ -6,6 +6,7 @@ const{
     searchFilmByActorName,
     searchFilmByGenre,
     viewTop5AStoreActors,
+    getActorDetails,
     getTop5RentedFilmsByActor
     ,listOfRentedFilms
     ,listOfUsers
@@ -18,6 +19,7 @@ router.get("/details/:film_id", getFilmDetails);
 router.get("/search/title/:name", searchFilmByName);
 router.get("/search/actor/:fullName" , searchFilmByActorName);
 router.get("/search/genre/:genre", searchFilmByGenre);
+router.get("/actor/:actor_id", getActorDetails);
 router.get("/top5C", viewTop5AStoreActors)
 router.get("/top5C/:actor_id", getTop5RentedFilmsByActor)
 router.get("/rented", listOfRentedFilms)
