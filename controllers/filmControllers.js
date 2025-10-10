@@ -162,11 +162,25 @@ const searchFilmByGenre = async (req,res) => {
 };
 const listOfRentedFilms = async (req,res) => {
     try {
-        const items = await query(`select f.film_id
-                                    from sakila.rental r
-                                    join sakila.inventory i on r.inventory_id = i.inventory_id
-                                    join sakila.film f on i.film_id = f.film_id
-                                    where r.return_date is null;`);
+        const items = await query(`SELECT 
+    f.film_id,
+    f.title,
+    COUNT(DISTINCT i.inventory_id) AS total_copies,
+    COUNT(DISTINCT CASE WHEN r.return_date IS NULL THEN i.inventory_id END) AS rented_copies
+FROM sakila.film AS f
+JOIN sakila.inventory AS i ON f.film_id = i.film_id
+LEFT JOIN sakila.rental AS r ON i.inventory_id = r.inventory_id 
+    AND r.rental_id = (
+        SELECT rental_id 
+        FROM sakila.rental 
+        WHERE inventory_id = i.inventory_id 
+        ORDER BY rental_date DESC 
+        LIMIT 1
+    )
+GROUP BY f.film_id, f.title
+HAVING COUNT(DISTINCT i.inventory_id) = 
+       COUNT(DISTINCT CASE WHEN r.return_date IS NULL THEN i.inventory_id END)
+ORDER BY f.film_id;;`);
         res.status(200).json({items});
     } catch (error) {
         res.status(500).json({ message: error.message });
