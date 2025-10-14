@@ -187,6 +187,56 @@ ORDER BY f.film_id;;`);
     }
 };
 
+//Get a single film based on the film id that isn't currently rented out
+const getUnrentedFilm=async (req,res)=>{
+    try {
+        const {film_id} = req.params;
+        const item = await query(`
+            select i.*
+from sakila.inventory i
+where i.film_id =?
+and i.inventory_id not in
+(select i_sub.inventory_id
+                from sakila.rental r_sub
+                join sakila.inventory i_sub on r_sub.inventory_id = i_sub.inventory_id
+                where r_sub.return_date is null
+                order by i_sub.film_id)
+order by i.film_id
+limit 1`, [film_id]);
+        res.status(200).json(item[0]);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}; 
+const getUnrentedFilms=async (req,res)=>{
+    try {
+        const {film_id} = req.params;
+        const item = await query(`
+            select i.*
+from sakila.inventory i
+where i.film_id =?
+and i.inventory_id not in
+(select i_sub.inventory_id
+                from sakila.rental r_sub
+                join sakila.inventory i_sub on r_sub.inventory_id = i_sub.inventory_id
+                where r_sub.return_date is null
+                order by i_sub.film_id)
+order by i.film_id`, [film_id]);
+        res.status(200).json(item);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}; 
+
+/*const rentFilm=async(req,res)=>{
+    try{
+        const {film_id}=req.params;
+        const item = await query(`
+            INSERT
+            `)
+    }
+}*/
+
 //Customer Page:
 
 const listOfUsers = async (req, res) => {
@@ -236,11 +286,6 @@ const listOfUsers = async (req, res) => {
 };
     //filter/search customers by their customer id, first name or last name
 const listOfUsersFiltered = async (req, res) => {
-    console.log("Recc: ", req.query);
-    console.log('req.url:', req.url);
-    console.log('req.originalUrl:', req.originalUrl);
-    
-    // Parse and validate pagination parameters
     let page = parseInt(req.query.page);
     let limit = parseInt(req.query.limit);
     
@@ -256,7 +301,11 @@ const listOfUsersFiltered = async (req, res) => {
     const offset = (page - 1) * limit;
     
     let firstName = req.query.firstName?.trim();
+    if(firstName!==undefined){
+    firstName="\""+firstName+"\" "}
     let lastName = req.query.lastName?.trim();
+    if(lastName!==undefined){
+    lastName="\""+lastName+"\" "}
     
     try {
         console.log("Filters - customerIdRaw:", customerIdRaw, "customerId:", customerId, typeof customerId, "First Name:", firstName, "Last Name:", lastName, "Limit:", limit, typeof limit, "Offset:", offset, typeof offset);
@@ -266,22 +315,22 @@ const listOfUsersFiltered = async (req, res) => {
         
         // More robust customerId check
         if (customerId && Number.isInteger(customerId) && customerId > 0) {
-            baseQuery += ' AND customer_id = ?';
-            queryParams.push(customerId);
+            baseQuery += ` AND customer_id = ${customerId}`;
+            console.log("Added")
         }
         
         // More robust string checks
         if (firstName && firstName.length > 0) {
-            baseQuery += ' AND first_name = ?';
-            queryParams.push(firstName.toUpperCase());
+            baseQuery += ` AND first_name = ${firstName}`;
+            //queryParams.push(firstName.toUpperCase());
         }
         
         if (lastName && lastName.length > 0) {
-            baseQuery += ' AND last_name = ?';
-            queryParams.push(lastName.toUpperCase());
+            baseQuery += ` AND last_name = ${lastName}`;
+            //queryParams.push(lastName.toUpperCase());
         }
         
-        baseQuery += ' LIMIT ? OFFSET ?';
+        baseQuery += ` LIMIT ${limit} OFFSET ${offset}`;
         queryParams.push(limit, offset); // Remove Number() wrapper
         
         console.log("Final Query:", baseQuery, queryParams);
@@ -301,6 +350,162 @@ const listOfUsersFiltered = async (req, res) => {
     }
 };
 
+const addUser = async (req,res) =>{
+    const {store_id,first_name,last_name,email,address_id,active}=req.body
+    if(!store_id||!first_name||!last_name||!email||!address_id||!active){
+        return res.status(400).send("Incomplete user form")
+    }
+    try{
+        const item = await query(`
+            INSERT INTO sakila.customer 
+            (store_id,first_name,last_name,email,address_id,active,create_date,last_update)
+            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            `,[store_id,first_name,last_name,email,address_id,active])
+            res.status(200).json({item});
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}
+
+const getAddresses=async(req,res)=>{
+    try{
+        const item=await query(`
+            SELECT * from sakila.address`)
+        res.status(200).json({item});
+    }
+    catch (error){
+        res.status(500).json({message: error.message})
+    }
+}
+const getAddress=async(req,res)=>{
+    try{
+        let {id}=req.params
+        const item=await query(`
+            SELECT * from sakila.address where address_id = ?`,[id])
+        res.status(200).json(item[0]);
+    }
+    catch (error){
+        res.status(500).json({message: error.message})
+    }
+}
+
+const addAddress = async (req,res)=>{
+    const {address,address2,district,city_id,postal_code,phone,location}=req.body
+    if(!address,!address2,!district,!city_id,!postal_code,!phone,!location){
+        return res.status(400).send("Incomplete address form")
+    }
+    try{
+        const item = await query(`
+            INSERT INTO sakila.address
+            (address,address2,district,city_id,postal_code,phone,location,last_update)
+            VALUES (?,?,?,?,?,?,CURRENT_TIMESTAMP)
+            `,[address,address2,district,city_id,postal_code,phone,location])
+            res.status(200).json({item});
+    }
+    catch(error){
+        res.status(500).json({message: error.message})
+    }
+}
+
+const getCountries = async(req,res)=>{
+    try{
+        console.log("Leprechaun",(req.query))
+        const item = await query(`
+            SELECT * from sakila.country
+            `)
+            res.status(200).json({item});
+    }
+    catch (error){
+        res.status(500).json({message: error.message})
+    }
+}
+const getCountry = async(req,res)=>{
+    let {id}=req.params
+        console.log(req.params)
+    try{
+        console.log(id)
+        const item = await query(`
+            SELECT * from sakila.country WHERE country_id = ?
+            `,[id])
+            res.status(200).json(item[0]);
+    }
+    catch (error){
+        res.status(500).json({message: error.message})
+    }
+}
+
+const getCities = async(req,res)=>{
+    try{
+        const item = await query(`
+            SELECT * from sakila.city
+            `)
+            res.status(200).json({item});
+    }
+    catch (error){
+        res.status(500).json({message: error.message})
+    }
+}
+const getCity = async(req,res)=>{
+    let {id}=req.params
+    try{
+        console.log(id)
+        const item = await query(`
+            SELECT * from sakila.city WHERE city_id = ?
+            `,[id])
+            res.status(200).json(item[0]);
+    }
+    catch (error){
+        res.status(500).json({message: error.message})
+    }
+}
+/**/const getRentalHistory=async(req,res)=>{
+    let {id}=req.params
+    try{
+        const item = await query(`
+            select r.*, f.title
+            from sakila.rental r
+            join sakila.inventory i
+            on r.inventory_id=i.inventory_id
+            join sakila.film f on  i.film_id=f.film_id
+            where customer_id=?`,[id]);
+            res.status(200).json(item);
+    }
+    catch(error){res.status(500).json({message: error.message})}
+}
+
+const editUser = async (req,res)=>{
+    try {
+        const { customer_id } = req.params;
+        const { store_id, first_name, last_name, email, address_id, active } = req.body;
+
+        if (!customer_id || !store_id || !first_name || !last_name || !email || !address_id || active === undefined) {
+            return res.status(400).json({ message: "Incomplete data" });
+        }
+
+        const result = await query(
+            `UPDATE sakila.customer
+             SET store_id = ?, first_name = ?, last_name = ?, email = ?, address_id = ?, active = ?, last_update = CURRENT_TIMESTAMP
+             WHERE customer_id = ?`,
+            [store_id, first_name, last_name, email, address_id, active, customer_id]
+        );
+
+        res.status(200).json({ message: "User updated", result });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}
+
+const deleteUser = async(req,res)=>{
+    try{
+        const {id} = req.params
+        console.log(id)
+        const item = await query(`DELETE FROM sakila.customer WHERE customer_id=?`,[id])
+        res.status(200).json(item);
+    } catch (error) {
+        console.log(req.params)
+        res.status(500).json({ message: error.message });
+    }
+}
 module.exports = { 
     viewTop5RentedFilms,
     getFilmDetails,
@@ -312,6 +517,20 @@ module.exports = {
     searchFilmByActorName,
     searchFilmByGenre,
     listOfRentedFilms,
+    getUnrentedFilm,
+    getUnrentedFilms,
+
     listOfUsers,
-    listOfUsersFiltered
+    listOfUsersFiltered,
+
+    addUser,
+    getAddresses,
+    getAddress,
+    getCountries,
+    getCountry,
+    getCities,
+    getCity,
+    getRentalHistory,
+
+    deleteUser
 };
