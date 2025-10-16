@@ -228,16 +228,33 @@ order by i.film_id`, [film_id]);
     }
 }; 
 
-/*const rentFilm=async(req,res)=>{
+const rentFilm=async(req,res)=>{
     try{
-        const {film_id}=req.params;
-        const item = await query(`
-            INSERT
-            `)
+        const {inventory_id,customer_id}=req.body
+    if(!inventory_id||!customer_id){
+        return res.status(400).send("Incomplete rental form")
     }
-}*/
+        const item = await query(`
+            INSERT INTO sakila.rental 
+            (rental_date,inventory_id,customer_id,return_date,staff_id,last_update)
+            VALUES (CURRENT_TIMESTAMP, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            `,[inventory_id,customer_id,null,1])
+            res.status(200).json({item});
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}
 
 //Customer Page:
+const listOfAllUsers=async(req,res)=>{
+    try{
+        const items = await query(`SELECT * FROM sakila.customer`);
+        res.status(200).json({items});
+    }
+    catch (error){
+        res.status(500).json({message: error.message})
+    }
+}
 
 const listOfUsers = async (req, res) => {
     /*console.log("Recc: ",req.query)
@@ -389,23 +406,32 @@ const getAddress=async(req,res)=>{
     }
 }
 
-const addAddress = async (req,res)=>{
-    const {address,address2,district,city_id,postal_code,phone,location}=req.body
-    if(!address,!address2,!district,!city_id,!postal_code,!phone,!location){
-        return res.status(400).send("Incomplete address form")
+const addAddress = async (req, res) => {
+    const { address, address2, district, city_id, postal_code, phone, lat, long } = req.body;
+    if (!address || !district || !city_id || lat === undefined || long === undefined) {
+        return res.status(400).send("Incomplete address form");
     }
-    try{
-        const item = await query(`
-            INSERT INTO sakila.address
-            (address,address2,district,city_id,postal_code,phone,location,last_update)
-            VALUES (?,?,?,?,?,?,CURRENT_TIMESTAMP)
-            `,[address,address2,district,city_id,postal_code,phone,location])
-            res.status(200).json({item});
+    const location = `POINT(${long} ${lat})`; 
+    try {
+        const item = await query(
+            `INSERT INTO sakila.address
+            (address, address2, district, city_id, postal_code, phone, location, last_update)
+            VALUES (?, ?, ?, ?, ?, ?, ST_GeomFromText(?), CURRENT_TIMESTAMP)`,
+            [
+                address,
+                address2 || null,
+                district,
+                city_id,
+                postal_code || '',
+                phone || '',
+                location
+            ]
+        );
+        res.status(200).json({ item });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
     }
-    catch(error){
-        res.status(500).json({message: error.message})
-    }
-}
+};
 
 const getCountries = async(req,res)=>{
     try{
@@ -475,18 +501,18 @@ const getCity = async(req,res)=>{
 
 const editUser = async (req,res)=>{
     try {
-        const { customer_id } = req.params;
-        const { store_id, first_name, last_name, email, address_id, active } = req.body;
+        const { id } = req.params;
+        const {first_name, last_name, email} = req.body;
 
-        if (!customer_id || !store_id || !first_name || !last_name || !email || !address_id || active === undefined) {
+        if (!id || !first_name || !last_name || !email) {
             return res.status(400).json({ message: "Incomplete data" });
         }
 
         const result = await query(
-            `UPDATE sakila.customer
-             SET store_id = ?, first_name = ?, last_name = ?, email = ?, address_id = ?, active = ?, last_update = CURRENT_TIMESTAMP
-             WHERE customer_id = ?`,
-            [store_id, first_name, last_name, email, address_id, active, customer_id]
+            `UPDATE sakila.customer c
+             SET c.first_name = ?, c.last_name = ?, c.email = ?, c.last_update = CURRENT_TIMESTAMP
+             WHERE c.customer_id = ?`,
+            [first_name, last_name, email, id]
         );
 
         res.status(200).json({ message: "User updated", result });
@@ -519,11 +545,12 @@ module.exports = {
     listOfRentedFilms,
     getUnrentedFilm,
     getUnrentedFilms,
+    rentFilm,
 
     listOfUsers,
     listOfUsersFiltered,
 
-    addUser,
+    addUser,addAddress,
     getAddresses,
     getAddress,
     getCountries,
@@ -531,6 +558,8 @@ module.exports = {
     getCities,
     getCity,
     getRentalHistory,
+    listOfAllUsers,
+    editUser,
 
     deleteUser
 };

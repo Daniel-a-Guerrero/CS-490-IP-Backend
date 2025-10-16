@@ -11,11 +11,13 @@ const{
     ,listOfRentedFilms,
     getUnrentedFilm,
     getUnrentedFilms,
+    rentFilm,
 
     listOfUsers
     ,listOfUsersFiltered
 
     ,addUser
+    ,addAddress
     ,getAddresses
     ,getAddress
     ,getCountries
@@ -23,7 +25,9 @@ const{
     ,getCities
     ,getCity
     ,getRentalHistory
+    ,listOfAllUsers
 
+    ,editUser
     ,deleteUser
 } = require("../controllers/filmControllers");
 const router = express.Router()
@@ -39,12 +43,15 @@ router.get("/top5C/:actor_id", getTop5RentedFilmsByActor)
 router.get("/rented", listOfRentedFilms)
 router.get("/unrented/:film_id", getUnrentedFilm)
 router.get("/unrenteds/:film_id", getUnrentedFilms)
+router.post("/rentals",rentFilm)
 
 router.get("/customers", listOfUsers)
 router.get("/customers/filter", listOfUsersFiltered)
 
-router.post("/customers/insert", (req,res)=>console.log(`${req.body}`))
-router.post("/address",(req,res)=>console.log(`${req.body}`))
+router.post("/customers/insert", addUser)
+router.put("/customer/:id",editUser)
+router.get("/allCustomers",listOfAllUsers)
+router.post("/address",addAddress)
 router.get("/addresses",getAddresses)
 router.get("/address/:id",getAddress)
 router.get("/countries",getCountries)

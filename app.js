@@ -26,13 +26,13 @@ Landing Page (4):
 Films Page (3):
     As a user I want to be able to search a film by name of film, name of an actor, or genre of the film
     As a user I want to be able to view details of the film
-•    As a user I want to be able to rent a film out to a customer
+    As a user I want to be able to rent a film out to a customer
 Customer Page (7):
     As a user I want to view a list of all customers (Pref. using pagination)
-•    As a user I want the ability to filter/search customers by their customer id, first name or last name.
-•    As a user I want to be able to add a new customer
+    As a user I want the ability to filter/search customers by their customer id, first name or last name.
+    As a user I want to be able to add a new customer
 •    As a user I want to be able to edit a customer’s details
-•    As a user I want to be able to delete a customer if they no longer wish to patron at store
+    As a user I want to be able to delete a customer if they no longer wish to patron at store
     As a user I want to be able to view customer details and see their past and present rental history
     As a user I want to be able to indicate that a customer has returned a rented movie
 */
