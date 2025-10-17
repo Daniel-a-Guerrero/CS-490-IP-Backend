@@ -368,6 +368,7 @@ const listOfUsersFiltered = async (req, res) => {
 };
 
 const addUser = async (req,res) =>{
+    console.log("Secret agent man", req.body)
     const {store_id,first_name,last_name,email,address_id,active}=req.body
     if(!store_id||!first_name||!last_name||!email||!address_id||!active){
         return res.status(400).send("Incomplete user form")
@@ -407,6 +408,7 @@ const getAddress=async(req,res)=>{
 }
 
 const addAddress = async (req, res) => {
+    console.log("THIS IS THE ADDRESS DATA: ", req.body)
     const { address, address2, district, city_id, postal_code, phone, lat, long } = req.body;
     if (!address || !district || !city_id || lat === undefined || long === undefined) {
         return res.status(400).send("Incomplete address form");
